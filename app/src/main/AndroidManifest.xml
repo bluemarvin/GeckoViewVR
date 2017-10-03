@@ -28,8 +28,10 @@
 
         <activity
             android:name=".MainActivity"
-            android:resizeableActivity="false"
+            android:resizeableActivity="false">
+            <!--
             android:enableVrMode="@string/gvr_vr_mode_component">
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -41,5 +43,4 @@
             </intent-filter>
         </activity>
     </application>
-
 </manifest>
