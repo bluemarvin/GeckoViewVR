@@ -88,6 +88,7 @@ public class MainActivity extends Activity {
         super.onResume();
         if (mGVRLayout != null) {
             mGVRLayout.onResume();
+            setFullScreen(true);
         }
     }
 
