@@ -144,6 +144,12 @@ public class MainActivity extends Activity {
             mGVRLayout = new GvrLayout(MainActivity.this);
             mGVRLayout.setAsyncReprojectionEnabled(true);
             mGVRLayout.setPresentationView(new FrameLayout(MainActivity.this));
+            mGVRLayout.getUiLayout().setCloseButtonListener(new Runnable() {
+                @Override
+                public void run() {
+                    stopPresenting();
+                }
+            });
 
             // Put it on top of the GeckoView
             mContainer.addView(mGVRLayout,
@@ -157,7 +163,6 @@ public class MainActivity extends Activity {
         }
 
         public void disableVRMode() {
-            // FIXME: call on UI thread?
             stopPresenting();
         }
     }
