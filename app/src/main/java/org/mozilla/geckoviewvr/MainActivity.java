@@ -44,6 +44,9 @@ public class MainActivity extends Activity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setFullScreen(true);
 
+        // Keep the screen on
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         mContainer = (FrameLayout)findViewById(R.id.container);
 
         GeckoView.setLayerViewGVRDelegate(new MyGVRDelegate());
