@@ -8,14 +8,21 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.TextView;
 
 import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.ndk.base.AndroidCompat;
 import com.google.vr.ndk.base.GvrApi;
 import com.google.vr.ndk.base.GvrLayout;
+import com.google.vr.sdk.base.Constants;
 
 import org.mozilla.gecko.GeckoView;
 import org.mozilla.gecko.GeckoViewInterfaces;
@@ -30,11 +37,14 @@ public class MainActivity extends Activity {
     private GeckoView mGeckoView;
     private GvrLayout mGVRLayout;
     private GvrApi mGVRApi;
+    private ImageButton mReloadButton;
+    private EditText mURLBar;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
         if (AndroidCompat.setVrModeEnabled(MainActivity.this, true)) {
             AndroidCompat.setSustainedPerformanceMode(MainActivity.this, true);
@@ -52,7 +62,8 @@ public class MainActivity extends Activity {
         GeckoView.setLayerViewGVRDelegate(new MyGVRDelegate());
         mGeckoView = (GeckoView)findViewById(R.id.geckoview);
         mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
-
+        mGeckoView.setNavigationListener(new MyNavigationListener());
+        setupUI();
         loadFromIntent(getIntent());
     }
 
@@ -115,7 +126,14 @@ public class MainActivity extends Activity {
 
     private void loadFromIntent(final Intent intent) {
         final Uri uri = intent.getData();
-        mGeckoView.loadUri(uri != null ? uri.toString() : DEFAULT_URL);
+        if (intent.hasCategory(Constants.DAYDREAM_CATEGORY)) {
+            Log.e("reb","Intent has DAYDREAM_CATEGORY");
+            return;
+        }
+        Log.e("reb", "Load URI from intent: " + (uri != null ? uri.toString() : DEFAULT_URL));
+        String uriValue = (uri != null ? uri.toString() : DEFAULT_URL);
+        mURLBar.setText(uriValue);
+        mGeckoView.loadUri(uriValue);
     }
 
     private void setFullScreen(boolean fullScreen) {
@@ -168,6 +186,48 @@ public class MainActivity extends Activity {
         }
     }
 
+    private class MyNavigationListener implements GeckoView.NavigationListener {
+        public void onLocationChange(GeckoView view, String url) {
+            mURLBar.setText(url);
+        }
+        public void onCanGoBack(GeckoView view, boolean canGoBack){
+
+        }
+        public void onCanGoForward(GeckoView view, boolean canGoForward){
+
+        }
+        public boolean onLoadUri(GeckoView view, String uri, TargetWindow where) {
+            return false;
+        }
+    }
+
+    private void setupUI() {
+        mReloadButton = (ImageButton)findViewById(R.id.reloadButton);
+        mURLBar = (EditText)findViewById(R.id.urlBar);
+
+        mReloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mGeckoView != null) {
+                    mGeckoView.reload();
+                }
+            }
+        });
+
+        mURLBar.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+                //    if ((i == EditorInfo.IME_NULL) && (keyEvent.getAction() == KeyEvent.ACTION_UP)) {
+                if (i == EditorInfo.IME_ACTION_NEXT) {
+                    String uri = textView.getText().toString();
+                    Log.e("reb", "Got URI: " + uri);
+                    mGeckoView.loadUri(uri);
+                    setFullScreen(true);
+                }
+                return false;
+            }
+        });
+    }
     private void createGVRApi() {
         if (mGVRApi != null) {
             return;
