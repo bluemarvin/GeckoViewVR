@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
@@ -39,19 +38,18 @@ public class MainActivity extends Activity {
     private GvrApi mGVRApi;
     private ImageButton mReloadButton;
     private EditText mURLBar;
-
-
+    private int mOriginalRequestedOrientation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.e("reb", "************ onCreate GeckoViewVR ************");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         if (AndroidCompat.setVrModeEnabled(MainActivity.this, true)) {
             AndroidCompat.setSustainedPerformanceMode(MainActivity.this, true);
         }
 
-        // We're always in landscape and fullscreen
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        // We're always in fullscreen
         setFullScreen(true);
 
         // Keep the screen on
@@ -63,6 +61,7 @@ public class MainActivity extends Activity {
         mGeckoView = (GeckoView)findViewById(R.id.geckoview);
         mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
         mGeckoView.setNavigationListener(new MyNavigationListener());
+        mGeckoView.requestFocus();
         setupUI();
         loadFromIntent(getIntent());
     }
@@ -121,6 +120,7 @@ public class MainActivity extends Activity {
         mContainer.removeView(mGVRLayout);
         mGVRLayout.shutdown();
         mGVRLayout = null;
+        setRequestedOrientation(mOriginalRequestedOrientation);
         return true;
     }
 
@@ -160,6 +160,12 @@ public class MainActivity extends Activity {
 
         public boolean enableVRMode() {
             // Create a GvrLayout
+            if (mGVRLayout != null) {
+                Log.e("reb", "GvrLayout allready crteated!");
+                return true;
+            }
+            mOriginalRequestedOrientation = getRequestedOrientation();
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             mGVRLayout = new GvrLayout(MainActivity.this);
             mGVRLayout.setAsyncReprojectionEnabled(true);
             mGVRLayout.setPresentationView(new FrameLayout(MainActivity.this));
@@ -176,7 +182,6 @@ public class MainActivity extends Activity {
                                                  FrameLayout.LayoutParams.MATCH_PARENT));
             mGVRLayout.onResume();
 
-            // Tell gecko about the new GvrContext
             GeckoView.setGVRContextAndSurface(mGVRLayout.getGvrApi().getNativeGvrContext(), null);
             return true;
         }
@@ -228,6 +233,7 @@ public class MainActivity extends Activity {
             }
         });
     }
+
     private void createGVRApi() {
         if (mGVRApi != null) {
             return;

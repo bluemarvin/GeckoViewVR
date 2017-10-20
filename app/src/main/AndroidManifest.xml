@@ -28,7 +28,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:resizeableActivity="false">
+            android:resizeableActivity="false"
+            android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize|locale|layoutDirection|smallestScreenSize|screenLayout">
             <!--
             android:enableVrMode="@string/gvr_vr_mode_component">
             -->
