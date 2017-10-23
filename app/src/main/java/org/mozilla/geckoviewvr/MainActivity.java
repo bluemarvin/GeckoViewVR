@@ -31,7 +31,6 @@ public class MainActivity extends Activity {
     private static final String LOGTAG = "GeckoViewVR";
 
     private static final String DEFAULT_URL = "https://webvr.info/samples/03-vr-presentation.html";
-
     private FrameLayout mContainer;
     private GeckoView mGeckoView;
     private GvrLayout mGVRLayout;
@@ -44,10 +43,13 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         Log.e("reb", "************ onCreate GeckoViewVR ************");
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
         if (AndroidCompat.setVrModeEnabled(MainActivity.this, true)) {
             AndroidCompat.setSustainedPerformanceMode(MainActivity.this, true);
         }
+
+        mOriginalRequestedOrientation = getRequestedOrientation();
 
         // We're always in fullscreen
         setFullScreen(true);
@@ -87,6 +89,11 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        Log.e("reb", "onPause()");
+        if (mGVRApi != null) {
+            GeckoView.setGVRPaused(true);
+        }
+
         if (mGVRLayout != null) {
             mGVRLayout.onPause();
         }
@@ -95,7 +102,12 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
+        Log.e("reb", "onResume");
         super.onResume();
+        if (mGVRApi != null) {
+            GeckoView.setGVRPaused(false);
+        }
+
         if (mGVRLayout != null) {
             mGVRLayout.onResume();
             setFullScreen(true);
@@ -104,23 +116,44 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        Log.e("reb", "onDestroy");
+        setRequestedOrientation(mOriginalRequestedOrientation);
         super.onDestroy();
         if (mGVRLayout != null) {
+            GeckoView.setGVRPresentingContext(0);
             mGVRLayout.shutdown();
+            mGVRLayout = null;
+        }
+        if (mGVRApi != null) {
+            GeckoView.cleanupGVRNonPresentingContext();
         }
     }
 
+    /*
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+
+    }
+
+    @Override
+    protected void onRestoreInstanceState (Bundle savedInstanceState) {
+
+    }
+    */
+
     private boolean stopPresenting() {
+        Log.e("reb","GeckoViewVR stopPresenting");
+        setRequestedOrientation(mOriginalRequestedOrientation);
         if (mGVRLayout == null) {
             return false;
         }
 
-        GeckoView.setGVRContextAndSurface(0, null);
+        GeckoView.setGVRPresentingContext(0);
 
         mContainer.removeView(mGVRLayout);
         mGVRLayout.shutdown();
         mGVRLayout = null;
-        setRequestedOrientation(mOriginalRequestedOrientation);
+
         return true;
     }
 
@@ -149,7 +182,7 @@ public class MainActivity extends Activity {
     }
 
     private class MyGVRDelegate implements GeckoViewInterfaces.GVRDelegate {
-        public long getGVRContext() {
+        public long createGVRNonPresentingContext() {
             createGVRApi();
             if (mGVRApi == null) {
                 Log.e(LOGTAG, "Failed to create GvrApi");
@@ -158,13 +191,22 @@ public class MainActivity extends Activity {
             return mGVRApi.getNativeGvrContext();
         }
 
+        public void destroyGVRNonPresentingContext() {
+            if (mGVRApi == null) {
+                return;
+            }
+
+            mGVRApi.shutdown();
+            mGVRApi = null;
+        }
+
         public boolean enableVRMode() {
             // Create a GvrLayout
             if (mGVRLayout != null) {
                 Log.e("reb", "GvrLayout allready crteated!");
                 return true;
             }
-            mOriginalRequestedOrientation = getRequestedOrientation();
+
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             mGVRLayout = new GvrLayout(MainActivity.this);
             mGVRLayout.setAsyncReprojectionEnabled(true);
@@ -182,7 +224,7 @@ public class MainActivity extends Activity {
                                                  FrameLayout.LayoutParams.MATCH_PARENT));
             mGVRLayout.onResume();
 
-            GeckoView.setGVRContextAndSurface(mGVRLayout.getGvrApi().getNativeGvrContext(), null);
+            GeckoView.setGVRPresentingContext(mGVRLayout.getGvrApi().getNativeGvrContext());
             return true;
         }
 
