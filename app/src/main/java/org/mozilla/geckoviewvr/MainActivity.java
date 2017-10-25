@@ -41,7 +41,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.e("reb", "************ onCreate GeckoViewVR ************");
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
@@ -89,7 +88,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
-        Log.e("reb", "onPause()");
         if (mGVRApi != null) {
             GeckoView.setGVRPaused(true);
         }
@@ -102,7 +100,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
-        Log.e("reb", "onResume");
         super.onResume();
         if (mGVRApi != null) {
             GeckoView.setGVRPaused(false);
@@ -116,7 +113,6 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        Log.e("reb", "onDestroy");
         setRequestedOrientation(mOriginalRequestedOrientation);
         super.onDestroy();
         if (mGVRLayout != null) {
@@ -142,7 +138,6 @@ public class MainActivity extends Activity {
     */
 
     private boolean stopPresenting() {
-        Log.e("reb","GeckoViewVR stopPresenting");
         setRequestedOrientation(mOriginalRequestedOrientation);
         if (mGVRLayout == null) {
             return false;
@@ -160,10 +155,10 @@ public class MainActivity extends Activity {
     private void loadFromIntent(final Intent intent) {
         final Uri uri = intent.getData();
         if (intent.hasCategory(Constants.DAYDREAM_CATEGORY)) {
-            Log.e("reb","Intent has DAYDREAM_CATEGORY");
+            Log.e(LOGTAG,"Intent has DAYDREAM_CATEGORY");
             return;
         }
-        Log.e("reb", "Load URI from intent: " + (uri != null ? uri.toString() : DEFAULT_URL));
+        Log.e(LOGTAG, "Load URI from intent: " + (uri != null ? uri.toString() : DEFAULT_URL));
         String uriValue = (uri != null ? uri.toString() : DEFAULT_URL);
         mURLBar.setText(uriValue);
         mGeckoView.loadUri(uriValue);
@@ -203,7 +198,6 @@ public class MainActivity extends Activity {
         public boolean enableVRMode() {
             // Create a GvrLayout
             if (mGVRLayout != null) {
-                Log.e("reb", "GvrLayout allready crteated!");
                 return true;
             }
 
@@ -267,7 +261,7 @@ public class MainActivity extends Activity {
                 //    if ((i == EditorInfo.IME_NULL) && (keyEvent.getAction() == KeyEvent.ACTION_UP)) {
                 if (i == EditorInfo.IME_ACTION_NEXT) {
                     String uri = textView.getText().toString();
-                    Log.e("reb", "Got URI: " + uri);
+                    Log.e(LOGTAG, "Got URI: " + uri);
                     mGeckoView.loadUri(uri);
                     setFullScreen(true);
                 }
