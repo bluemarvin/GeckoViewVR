@@ -39,6 +39,7 @@
                 <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER"/>
                 <category android:name="android.intent.category.APP_BROWSER" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="com.google.intent.category.DAYDREAM" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
 
         mContainer = (FrameLayout)findViewById(R.id.container);
 
-        GeckoView.setLayerViewGVRDelegate(new MyGVRDelegate());
+        GeckoView.setGVRDelegate(new MyGVRDelegate());
         mGeckoView = (GeckoView)findViewById(R.id.geckoview);
         mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
         mGeckoView.setNavigationListener(new MyNavigationListener());
