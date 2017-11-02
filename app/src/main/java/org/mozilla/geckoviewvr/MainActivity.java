@@ -24,8 +24,8 @@ import com.google.vr.ndk.base.GvrLayout;
 import com.google.vr.sdk.base.Constants;
 
 import org.mozilla.gecko.GeckoView;
-import org.mozilla.gecko.GeckoViewInterfaces;
 import org.mozilla.gecko.GeckoViewSettings;
+import org.mozilla.gecko.GeckoVRManager;
 
 public class MainActivity extends Activity {
     private static final String LOGTAG = "GeckoViewVR";
@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
 
         mContainer = (FrameLayout)findViewById(R.id.container);
 
-        GeckoView.setGVRDelegate(new MyGVRDelegate());
+        GeckoVRManager.setGVRDelegate(new MyGVRDelegate());
         mGeckoView = (GeckoView)findViewById(R.id.geckoview);
         mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
         mGeckoView.setNavigationListener(new MyNavigationListener());
@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         if (mGVRApi != null) {
-            GeckoView.setGVRPaused(true);
+            GeckoVRManager.setGVRPaused(true);
         }
 
         if (mGVRLayout != null) {
@@ -102,7 +102,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (mGVRApi != null) {
-            GeckoView.setGVRPaused(false);
+            GeckoVRManager.setGVRPaused(false);
         }
 
         if (mGVRLayout != null) {
@@ -116,12 +116,12 @@ public class MainActivity extends Activity {
         setRequestedOrientation(mOriginalRequestedOrientation);
         super.onDestroy();
         if (mGVRLayout != null) {
-            GeckoView.setGVRPresentingContext(0);
+            GeckoVRManager.setGVRPresentingContext(0);
             mGVRLayout.shutdown();
             mGVRLayout = null;
         }
         if (mGVRApi != null) {
-            GeckoView.cleanupGVRNonPresentingContext();
+            GeckoVRManager.cleanupGVRNonPresentingContext();
         }
     }
 
@@ -143,7 +143,7 @@ public class MainActivity extends Activity {
             return false;
         }
 
-        GeckoView.setGVRPresentingContext(0);
+        GeckoVRManager.setGVRPresentingContext(0);
 
         mContainer.removeView(mGVRLayout);
         mGVRLayout.shutdown();
@@ -176,7 +176,7 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(flags);
     }
 
-    private class MyGVRDelegate implements GeckoViewInterfaces.GVRDelegate {
+    private class MyGVRDelegate implements GeckoVRManager.GVRDelegate {
         public long createGVRNonPresentingContext() {
             createGVRApi();
             if (mGVRApi == null) {
@@ -218,7 +218,7 @@ public class MainActivity extends Activity {
                                                  FrameLayout.LayoutParams.MATCH_PARENT));
             mGVRLayout.onResume();
 
-            GeckoView.setGVRPresentingContext(mGVRLayout.getGvrApi().getNativeGvrContext());
+            GeckoVRManager.setGVRPresentingContext(mGVRLayout.getGvrApi().getNativeGvrContext());
             return true;
         }
 
