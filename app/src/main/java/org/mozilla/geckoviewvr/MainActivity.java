@@ -177,7 +177,7 @@ public class MainActivity extends Activity {
     }
 
     private class MyGVRDelegate implements GeckoVRManager.GVRDelegate {
-        public long createGVRNonPresentingContext() {
+        public long createNonPresentingContext() {
             createGVRApi();
             if (mGVRApi == null) {
                 Log.e(LOGTAG, "Failed to create GvrApi");
@@ -186,7 +186,7 @@ public class MainActivity extends Activity {
             return mGVRApi.getNativeGvrContext();
         }
 
-        public void destroyGVRNonPresentingContext() {
+        public void destroyNonPresentingContext() {
             if (mGVRApi == null) {
                 return;
             }
