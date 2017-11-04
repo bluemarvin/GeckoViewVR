@@ -1,3 +1,9 @@
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 20; indent-tabs-mode: nil; -*-
+ * vim: ts=4 sw=4 expandtab:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package org.mozilla.geckoviewvr;
 
 import android.app.Activity;
@@ -35,7 +41,6 @@ public class MainActivity extends Activity {
     private GeckoView mGeckoView;
     private GvrLayout mGVRLayout;
     private GvrApi mGVRApi;
-    private ImageButton mReloadButton;
     private EditText mURLBar;
     private int mOriginalRequestedOrientation;
 
@@ -51,15 +56,15 @@ public class MainActivity extends Activity {
         mOriginalRequestedOrientation = getRequestedOrientation();
 
         // We're always in fullscreen
-        setFullScreen(true);
+        setFullScreen();
 
         // Keep the screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        mContainer = (FrameLayout)findViewById(R.id.container);
+        mContainer = findViewById(R.id.container);
 
         GeckoVRManager.setGVRDelegate(new MyGVRDelegate());
-        mGeckoView = (GeckoView)findViewById(R.id.geckoview);
+        mGeckoView = findViewById(R.id.geckoview);
         mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
         mGeckoView.setNavigationListener(new MyNavigationListener());
         mGeckoView.requestFocus();
@@ -107,7 +112,7 @@ public class MainActivity extends Activity {
 
         if (mGVRLayout != null) {
             mGVRLayout.onResume();
-            setFullScreen(true);
+            setFullScreen();
         }
     }
 
@@ -124,18 +129,6 @@ public class MainActivity extends Activity {
             GeckoVRManager.cleanupGVRNonPresentingContext();
         }
     }
-
-    /*
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-
-    }
-
-    @Override
-    protected void onRestoreInstanceState (Bundle savedInstanceState) {
-
-    }
-    */
 
     private boolean stopPresenting() {
         setRequestedOrientation(mOriginalRequestedOrientation);
@@ -164,14 +157,14 @@ public class MainActivity extends Activity {
         mGeckoView.loadUri(uriValue);
     }
 
-    private void setFullScreen(boolean fullScreen) {
-        int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-        if (fullScreen) {
-            flags |= View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-        }
+    private void setFullScreen() {
+        int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
 
         getWindow().getDecorView().setSystemUiVisibility(flags);
     }
@@ -243,10 +236,10 @@ public class MainActivity extends Activity {
     }
 
     private void setupUI() {
-        mReloadButton = (ImageButton)findViewById(R.id.reloadButton);
-        mURLBar = (EditText)findViewById(R.id.urlBar);
+        ImageButton reloadButton = findViewById(R.id.reloadButton);
+        mURLBar = findViewById(R.id.urlBar);
 
-        mReloadButton.setOnClickListener(new View.OnClickListener() {
+        reloadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (mGeckoView != null) {
@@ -258,12 +251,11 @@ public class MainActivity extends Activity {
         mURLBar.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
-                //    if ((i == EditorInfo.IME_NULL) && (keyEvent.getAction() == KeyEvent.ACTION_UP)) {
                 if (i == EditorInfo.IME_ACTION_NEXT) {
                     String uri = textView.getText().toString();
                     Log.e(LOGTAG, "Got URI: " + uri);
                     mGeckoView.loadUri(uri);
-                    setFullScreen(true);
+                    setFullScreen();
                 }
                 return false;
             }
@@ -276,10 +268,12 @@ public class MainActivity extends Activity {
         }
         Context context = getApplicationContext();
         WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        if (windowManager  == null) {
+            return;
+        }
         Display display = windowManager.getDefaultDisplay();
         DisplaySynchronizer synchronizer = new DisplaySynchronizer(context, display);
 
         mGVRApi = new GvrApi(context, synchronizer);
     }
-
 }
