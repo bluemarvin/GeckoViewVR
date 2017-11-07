@@ -29,8 +29,9 @@ import com.google.vr.ndk.base.GvrApi;
 import com.google.vr.ndk.base.GvrLayout;
 import com.google.vr.sdk.base.Constants;
 
+import org.mozilla.gecko.GeckoSession;
+import org.mozilla.gecko.GeckoSessionSettings;
 import org.mozilla.gecko.GeckoView;
-import org.mozilla.gecko.GeckoViewSettings;
 import org.mozilla.gecko.GeckoVRManager;
 
 public class MainActivity extends Activity {
@@ -39,6 +40,7 @@ public class MainActivity extends Activity {
     private static final String DEFAULT_URL = "https://webvr.info/samples/03-vr-presentation.html";
     private FrameLayout mContainer;
     private GeckoView mGeckoView;
+    private GeckoSession mGeckoSession;
     private GvrLayout mGVRLayout;
     private GvrApi mGVRApi;
     private EditText mURLBar;
@@ -65,8 +67,10 @@ public class MainActivity extends Activity {
 
         GeckoVRManager.setGVRDelegate(new MyGVRDelegate());
         mGeckoView = findViewById(R.id.geckoview);
-        mGeckoView.getSettings().setBoolean(GeckoViewSettings.USE_MULTIPROCESS, false);
-        mGeckoView.setNavigationListener(new MyNavigationListener());
+        mGeckoSession = new GeckoSession();
+        mGeckoView.setSession(mGeckoSession);
+        mGeckoSession.setNavigationListener(new Navigation());
+        mGeckoView.getSettings().setBoolean(GeckoSessionSettings.USE_MULTIPROCESS, false);
         mGeckoView.requestFocus();
         setupUI();
         loadFromIntent(getIntent());
@@ -154,7 +158,7 @@ public class MainActivity extends Activity {
         Log.e(LOGTAG, "Load URI from intent: " + (uri != null ? uri.toString() : DEFAULT_URL));
         String uriValue = (uri != null ? uri.toString() : DEFAULT_URL);
         mURLBar.setText(uriValue);
-        mGeckoView.loadUri(uriValue);
+        mGeckoSession.loadUri(uriValue);
     }
 
     private void setFullScreen() {
@@ -220,17 +224,17 @@ public class MainActivity extends Activity {
         }
     }
 
-    private class MyNavigationListener implements GeckoView.NavigationListener {
-        public void onLocationChange(GeckoView view, String url) {
+    private class Navigation implements GeckoSession.NavigationListener {
+        public void onLocationChange(GeckoSession session, String url) {
             mURLBar.setText(url);
         }
-        public void onCanGoBack(GeckoView view, boolean canGoBack){
+        public void onCanGoBack(GeckoSession session, boolean canGoBack){
 
         }
-        public void onCanGoForward(GeckoView view, boolean canGoForward){
+        public void onCanGoForward(GeckoSession session, boolean canGoForward){
 
         }
-        public boolean onLoadUri(GeckoView view, String uri, TargetWindow where) {
+        public boolean onLoadUri(GeckoSession session, String uri, TargetWindow where) {
             return false;
         }
     }
@@ -242,8 +246,8 @@ public class MainActivity extends Activity {
         reloadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mGeckoView != null) {
-                    mGeckoView.reload();
+                if (mGeckoSession != null) {
+                    mGeckoSession.reload();
                 }
             }
         });
@@ -254,7 +258,7 @@ public class MainActivity extends Activity {
                 if (i == EditorInfo.IME_ACTION_NEXT) {
                     String uri = textView.getText().toString();
                     Log.e(LOGTAG, "Got URI: " + uri);
-                    mGeckoView.loadUri(uri);
+                    mGeckoSession.loadUri(uri);
                     setFullScreen();
                 }
                 return false;
