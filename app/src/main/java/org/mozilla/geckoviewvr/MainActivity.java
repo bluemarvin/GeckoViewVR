@@ -10,6 +10,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -23,6 +24,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
+import java.util.Locale;
+
 import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.ndk.base.AndroidCompat;
 import com.google.vr.ndk.base.GvrApi;
@@ -33,11 +36,14 @@ import org.mozilla.gecko.GeckoSession;
 import org.mozilla.gecko.GeckoSessionSettings;
 import org.mozilla.gecko.GeckoView;
 import org.mozilla.gecko.GeckoVRManager;
+import org.mozilla.gecko.util.GeckoBundle;
 
 public class MainActivity extends Activity {
     private static final String LOGTAG = "GeckoViewVR";
 
     private static final String DEFAULT_URL = "https://webvr.info/samples/03-vr-presentation.html";
+    private static final int REQUEST_PERMISSIONS = 2;
+    /* package */ static final int REQUEST_FILE_PICKER = 1;
     private FrameLayout mContainer;
     private GeckoView mGeckoView;
     private GeckoSession mGeckoSession;
@@ -70,7 +76,14 @@ public class MainActivity extends Activity {
         mGeckoSession = new GeckoSession();
         mGeckoView.setSession(mGeckoSession);
         mGeckoSession.setNavigationListener(new Navigation());
+        final BasicGeckoViewPrompt prompt = new BasicGeckoViewPrompt(this);
+        prompt.filePickerRequestCode = REQUEST_FILE_PICKER;
+        mGeckoSession.setPromptDelegate(prompt);
+        final MyGeckoViewPermission permission = new MyGeckoViewPermission();
+        permission.androidPermissionRequestCode = REQUEST_PERMISSIONS;
+        mGeckoSession.setPermissionDelegate(permission);
         mGeckoView.getSettings().setBoolean(GeckoSessionSettings.USE_MULTIPROCESS, false);
+        //mGeckoView.getSettings().setBoolean(GeckoSessionSettings.USE_REMOTE_DEBUGGER, true);
         mGeckoView.requestFocus();
         setupUI();
         loadFromIntent(getIntent());
@@ -134,6 +147,32 @@ public class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onActivityResult(final int requestCode, final int resultCode,
+                                    final Intent data) {
+        if (requestCode == REQUEST_FILE_PICKER) {
+            final BasicGeckoViewPrompt prompt = (BasicGeckoViewPrompt)
+                    mGeckoSession.getPromptDelegate();
+            prompt.onFileCallbackResult(resultCode, data);
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(final int requestCode,
+                                           final String[] permissions,
+                                           final int[] grantResults) {
+        Log.e(LOGTAG,"Got onRequestPermissionsResult");
+        if (requestCode == REQUEST_PERMISSIONS) {
+            final MyGeckoViewPermission permission = (MyGeckoViewPermission)
+                    mGeckoSession.getPermissionDelegate();
+            permission.onRequestPermissionsResult(permissions, grantResults);
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
     private boolean stopPresenting() {
         setRequestedOrientation(mOriginalRequestedOrientation);
         if (mGVRLayout == null) {
@@ -161,7 +200,7 @@ public class MainActivity extends Activity {
         mGeckoSession.loadUri(uriValue);
     }
 
-    private void setFullScreen() {
+    public void setFullScreen() {
         int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -214,7 +253,7 @@ public class MainActivity extends Activity {
                     new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
                                                  FrameLayout.LayoutParams.MATCH_PARENT));
             mGVRLayout.onResume();
-
+            setFullScreen();
             GeckoVRManager.setGVRPresentingContext(mGVRLayout.getGvrApi().getNativeGvrContext());
             return true;
         }
@@ -279,5 +318,106 @@ public class MainActivity extends Activity {
         DisplaySynchronizer synchronizer = new DisplaySynchronizer(context, display);
 
         mGVRApi = new GvrApi(context, synchronizer);
+    }
+
+    private class MyGeckoViewPermission implements GeckoSession.PermissionDelegate {
+
+        int androidPermissionRequestCode = 1;
+        private Callback mCallback;
+
+        void onRequestPermissionsResult(final String[] permissions,
+                                               final int[] grantResults) {
+            if (mCallback == null) {
+                return;
+            }
+
+            final Callback cb = mCallback;
+            mCallback = null;
+            for (final int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    // At least one permission was not granted.
+                    cb.reject();
+                    return;
+                }
+            }
+            Log.e(LOGTAG, "Permission Granted!");
+            cb.grant();
+        }
+
+        @Override
+        public void requestAndroidPermissions(final GeckoSession session, final String[] permissions,
+                                              final Callback callback) {
+            mCallback = callback;
+            requestPermissions(permissions, androidPermissionRequestCode);
+        }
+
+        @Override
+        public void requestContentPermission(final GeckoSession session, final String uri,
+                                             final String type, final String access,
+                                             final Callback callback) {
+            final int resId;
+            if ("geolocation".equals(type)) {
+                resId = R.string.request_geolocation;
+            } else if ("desktop-notification".equals(type)) {
+                resId = R.string.request_notification;
+            } else {
+                Log.w(LOGTAG, "Unknown permission: " + type);
+                callback.reject();
+                return;
+            }
+
+            final String title = getString(resId, Uri.parse(uri).getAuthority());
+            final BasicGeckoViewPrompt prompt = (BasicGeckoViewPrompt)
+                    mGeckoSession.getPromptDelegate();
+            prompt.promptForPermission(session, title, callback);
+        }
+
+
+        private void normalizeMediaName(final GeckoBundle[] sources) {
+            if (sources == null) {
+                return;
+            }
+            for (final GeckoBundle source : sources) {
+                final String mediaSource = source.getString("mediaSource");
+                String name = source.getString("name");
+                if ("camera".equals(mediaSource)) {
+                    if (name.toLowerCase(Locale.ENGLISH).contains("front")) {
+                        name = getString(R.string.media_front_camera);
+                    } else {
+                        name = getString(R.string.media_back_camera);
+                    }
+                } else if (!name.isEmpty()) {
+                    continue;
+                } else if ("microphone".equals(mediaSource)) {
+                    name = getString(R.string.media_microphone);
+                } else {
+                    name = getString(R.string.media_other);
+                }
+                source.putString("name", name);
+            }
+        }
+
+        @Override
+        public void requestMediaPermission(final GeckoSession session, final String uri,
+                                           final GeckoBundle[] video,
+                                           final GeckoBundle[] audio,
+                                           final MediaCallback callback) {
+            final String host = Uri.parse(uri).getAuthority();
+            final String title;
+            if (audio == null) {
+                title = getString(R.string.request_video, host);
+            } else if (video == null) {
+                title = getString(R.string.request_audio, host);
+            } else {
+                title = getString(R.string.request_media, host);
+            }
+
+            normalizeMediaName(video);
+            normalizeMediaName(audio);
+
+            final BasicGeckoViewPrompt prompt = (BasicGeckoViewPrompt)
+                    mGeckoSession.getPromptDelegate();
+            prompt.promptForMedia(session, title, video, audio, callback);
+        }
     }
 }
